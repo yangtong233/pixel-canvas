@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>游戏物体画板</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="pill">帧（Frames）</div>
+    <div id="frames" class="frames" aria-label="帧列表"></div>
+  </aside>
+
+  <section class="center">
+    <div id="gridWrap" aria-label="像素画布容器">
+      <div id="grid" tabindex="0" aria-label="像素画布" title="像素画布：左键绘制、右键橡皮、Alt 吸管"></div>
+      <canvas id="overlay" aria-hidden="true"></canvas>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="panel" aria-live="polite">
+      <div id="statusText">空闲</div>
+    </div>
+
+    <div class="panel" id="previewPanel">
+      <div class="row"><span class="pill">预览</span></div>
+      <div class="row tight">
+        <button id="previewPlay" class="btn" title="空格/Enter 也可播放/暂停">▶ 播放</button>
+        <button id="previewStop" class="btn">■ 停止</button>
+        <label title="预览帧率（每秒帧数）">
+          FPS
+          <select id="previewFps">
+            <option>4</option>
+            <option selected>8</option>
+            <option>12</option>
+            <option>16</option>
+            <option>24</option>
+          </select>
+        </label>
+        <label title="预览放大倍率">
+          缩放
+          <select id="previewScale">
+            <option value="2">2x</option>
+            <option value="4" selected>4x</option>
+            <option value="8">8x</option>
+          </select>
+        </label>
+        <label><input id="previewPingpong" type="checkbox" /> 往返播放</label>
+      </div>
+      <div class="center">
+        <canvas id="previewCanvas" width="32" height="32" aria-label="多帧动画预览"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row"><span class="pill">工具</span></div>
+      <div class="row tight">
+        <div class="seg" id="toolSeg" title="选择绘图工具">
+          <button data-tool="brush" class="active" title="画笔（B）">画笔</button>
+          <button data-tool="bucket" title="油漆桶（F）">填充</button>
+          <button data-tool="line" title="直线（L）">直线</button>
+          <button data-tool="rect" title="矩形（R）">矩形</button>
+          <button data-tool="stroke-rect" title="描边矩形">描边</button>
+          <button data-tool="picker" title="吸管（Alt+单击）">吸管</button>
+          <button data-tool="lighten" title="变亮">变亮</button>
+          <button data-tool="darken" title="变暗">变暗</button>
+        </div>
+      </div>
+      <div class="row tight">
+        <label title="镜像模式（M 循环切换）">
+          镜像：
+          <select id="mirrorMode" title="镜像模式（M 循环）">
+            <option value="none" selected>无</option>
+            <option value="x">左右镜像</option>
+            <option value="y">上下镜像</option>
+            <option value="xy">四向镜像</option>
+            <option value="central">中心对称</option>
+            <option value="diag">主对角线（↘）</option>
+            <option value="anti">副对角线（↗）</option>
+          </select>
+        </label>
+        <label title="画笔半径（滑动鼠标滚轮可放大或缩小）">
+          半径
+          <input id="brushSize" type="range" min="1" max="16" value="1" />
+        </label>
+        <label title="显示/隐藏网格线（辅助观察像素边界）">
+          <input id="gridLines" type="checkbox" checked /> 显示网格线
+        </label>
+      </div>
+      <div class="row tight">
+        <button id="undoBtn" class="btn" title="撤销（⌘/Ctrl+Z）">撤销</button>
+        <button id="redoBtn" class="btn" title="重做（⌘/Ctrl+Y 或 ⌘/Ctrl+Shift+Z）">重做</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row"><span class="pill">帧操作</span></div>
+      <div class="row tight">
+        <button id="copyFrame" class="btn" title="复制当前帧到剪贴板（⌘/Ctrl+C）">复制帧</button>
+        <button id="pasteFrame" class="btn" title="从剪贴板粘贴到当前帧（⌘/Ctrl+V）">粘贴帧</button>
+        <button id="clearFrame" class="btn" title="清空当前帧像素">清空帧</button>
+        <button id="deleteFrame" class="btn" title="删除当前帧">删除帧</button>
+        <button id="addFrame" class="btn" title="在当前帧后新增一帧（复制当前内容）">新增帧</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row"><span class="pill">画笔 & 颜色</span></div>
+      <div class="row" style="gap:10px;align-items:center;">
+        <div class="swatches" id="swatches" title="常用色板（单击切换颜色）"></div>
+        <label class="row" style="gap:6px;" title="系统取色器">
+          <span>自定义</span>
+          <input id="picker" type="color" value="#000000" />
+        </label>
+        <label class="row" style="gap:6px;" title="输入十六进制颜色（含#），如 #FF6600">
+          <span>#</span>
+          <input id="hexInput" type="text" placeholder="RRGGBB" maxlength="7" style="width:96px" />
+        </label>
+      </div>
+      <small title="提示：Alt+单击 吸管取色；B/F/L/R 切工具；M 切换镜像模式。">提示：Alt+单击 吸管取色；B/F/L/R 快速切工具；M 切镜像。</small>
+    </div>
+
+    <div class="panel">
+      <div class="row"><span class="pill">画布尺寸</span></div>
+      <div class="stack-left">
+        <label title="画布宽度（列数）">宽(列 X)：<input id="wInput" type="number" min="1" max="256" value="32" /></label>
+        <label title="画布高度（行数）">高(行 Y)：<input id="hInput" type="number" min="1" max="256" value="32" /></label>
+        <button id="applySize" class="btn" title="应用新尺寸（会重置所有帧）">应用新尺寸</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row"><span class="pill">导入 / 导出</span></div>
+      <div class="row tight">
+        <button id="exportJson" class="btn" title="导出为 JSON（包含所有帧）">导出 JSON</button>
+        <button id="importJsonBtn" class="btn" title="从 JSON 导入像素帧">导入 JSON</button>
+        <input id="importJsonFile" type="file" accept="application/json,.json" />
+      </div>
+      <div class="row tight">
+        <label title="导出 PNG 时的放大倍率">导出倍率
+          <select id="scaleSel" title="PNG 放大倍率">
+            <option value="1" selected>1x</option>
+            <option value="4">4x</option>
+            <option value="8">8x</option>
+            <option value="16">16x</option>
+            <option value="32">32x</option>
+          </select>
+        </label>
+        <button id="exportPng" class="btn" title="导出为 PNG 雪碧图（使用所有帧）">导出 PNG</button>
+      </div>
+      <div class="row tight">
+        <label title="GIF 导出的帧率（每秒帧数）">GIF FPS
+          <select id="fpsSel" title="GIF 帧率">
+            <option>4</option>
+            <option selected>8</option>
+            <option>12</option>
+            <option>16</option>
+            <option>24</option>
+          </select>
+        </label>
+        <button id="exportGif" class="btn primary" title="导出为 GIF 动图（使用所有帧）">导出 GIF</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+
+</html>
